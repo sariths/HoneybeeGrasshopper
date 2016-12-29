@@ -58,7 +58,7 @@ Provided by Honeybee 0.0.60
 
 ghenv.Component.Name = "Honeybee_Indoor View Factor Calculator"
 ghenv.Component.NickName = 'IndoorViewFactor'
-ghenv.Component.Message = 'VER 0.0.60\nAUG_10_2016'
+ghenv.Component.Message = 'VER 0.0.60\nDEC_04_2016'
 ghenv.Component.IconDisplayMode = ghenv.Component.IconDisplayMode.application
 ghenv.Component.Category = "Honeybee"
 ghenv.Component.SubCategory = "10 | Energy | Energy"
@@ -167,7 +167,10 @@ def copyHBZoneData():
                     for layer in windowLayers:
                         propNumbers = hb_EPMaterialAUX.decomposeMaterial(layer.upper(), ghenv.Component)[0]
                         if 'WindowMaterial:Glazing' in propNumbers[0]:
-                            winTrans = winTrans*float(propNumbers[4])
+                            try:
+                                winTrans = winTrans*float(propNumbers[4])
+                            except:
+                                winTrans = 0.4
                         elif 'WindowMaterial:SimpleGlazingSystem' in propNumbers[0]:
                             winTrans = winTrans*float(propNumbers[2])
                     windowSrfTransmiss[zoneCount].append(winTrans)
@@ -538,7 +541,6 @@ def prepareGeometry(gridSize, distFromFloor, removeInt, sectionMethod, sectionBr
         
         return finalBrep
     
-    
     #If interior walls have ben removed, see which surfaces are adjacent and re-make the lists fo zones.
     if removeInt == True:
         #Make a function to remove duplicates from a list.
@@ -699,6 +701,9 @@ def prepareGeometry(gridSize, distFromFloor, removeInt, sectionMethod, sectionBr
         windowSrfTransmiss = newWindowSrfTransmiss
         srfIntWindowAdjNumList = newSrfIntWindowAdjNumList
         zoneFloorReflect = newZoneFloorReflect
+    else:
+        for brep in zoneBreps:
+            zoneBrepsNonSolid.append([brep])
     
     #Make sure that the zone volumes are closed.
     for brepCount, brep in enumerate(zoneBreps):
@@ -824,7 +829,6 @@ def prepareGeometry(gridSize, distFromFloor, removeInt, sectionMethod, sectionBr
                 for srfCount, srf in enumerate(srfList):
                     zoneSrfsMesh[zoneCount].append(rc.Geometry.Mesh.CreateFromBrep(srf, srfMeshPar)[0])
             
-            
             #Generate the meshes and test points of the final surface.
             if sectionMethod == 0:
                 for brep in finalBreps:
@@ -888,13 +892,10 @@ def prepareGeometry(gridSize, distFromFloor, removeInt, sectionMethod, sectionBr
                     finalMesh = constructNewMesh(finalFaceBreps)
                     
                     if len(finalTestPts) > 0:
-                        if len(MRTMeshInit[zoneCount]) > 0: MRTMeshInit[zoneCount][0].Append(finalMesh)
-                        else: MRTMeshInit[zoneCount].append(finalMesh)
+                        MRTMeshInit[zoneCount].append(finalMesh)
                         
                         MRTMeshBreps[zoneCount].extend(finalFaceBreps)
                         testPts[zoneCount].extend(finalTestPts)
-        
-        
         
         #If the user has selected to use the results for an outdoor calculation, pull out those parts of the mesh related to the outdoors using the deletedIndices list.
         if sectionMethod != 0 and includeOutdoor == True:

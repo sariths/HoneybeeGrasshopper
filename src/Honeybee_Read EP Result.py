@@ -33,8 +33,8 @@ Provided by Honeybee 0.0.60
     Returns:
         totalThermalLoad: The total thermal energy used by each zone in kWh.  This includes cooling and heating.
         thermalLoadBalance: The thermal energy used by each zone in kWh.  Heating values are positive while cooling values are negative.
-        cooling: The cooling energy needed in kWh. For Ideal Air loads, this is the sum of sensible and latent heat that must be removed from each zone.  For distributed OpenStudio systems like Packaged Terminal Heat Pumps (PTHP), this will be electric energy for each zone. For central OpenStudio systems, this ouput will be a single list for the whole building.
-        heating: The heating energy needed in kWh. For Ideal Air loads, this is the sum of sensible heat that must be added to each zone.  For distributed OpenStudio Systems like Packaged Terminal Heat Pumps (PTHP), this will be electric energy for each zone. For central OpenStudio systems, this ouput will be a single list for the whole building.
+        cooling: The cooling energy needed in kWh. For Ideal Air loads, this output is the sum of sensible and latent heat that must be removed from each zone.  For detailed HVAC systems (other than ideal air), this output will be electric energy needed to power each chiller/cooling coil.
+        heating: The heating energy needed in kWh. For Ideal Air loads, this is the heat that must be added to each zone.  For detailed HVAC systems (other than ideal air), this will be fuel energy or electric energy needed for each boiler/heating element.
         electricLight: The electric lighting energy needed for each zone in kWh.
         electricEquip: The electric equipment energy needed for each zone in kWh.
         fanElectric: The fan electric energy in kWh for either a natural ventilation fan or a heating or cooling system fan.  This ouput will not appear when there is no fan in the model.
@@ -55,7 +55,7 @@ Provided by Honeybee 0.0.60
 
 ghenv.Component.Name = "Honeybee_Read EP Result"
 ghenv.Component.NickName = 'readEPResult'
-ghenv.Component.Message = 'VER 0.0.60\nSEP_03_2016'
+ghenv.Component.Message = 'VER 0.0.60\nOCT_05_2016'
 ghenv.Component.IconDisplayMode = ghenv.Component.IconDisplayMode.application
 ghenv.Component.Category = "Honeybee"
 ghenv.Component.SubCategory = "10 | Energy | Energy"
@@ -199,7 +199,7 @@ parseSuccess = False
 #If the energy values are set to be normalized, make the units in kWh/m2.
 energyUnit = "kWh"
 idealAirTrigger = False
-
+centTrigger = False
 
 #Make a function to add headers.
 def makeHeader(list, path, zoneName, timestep, name, units, normable):
@@ -391,10 +391,14 @@ if _resultFileAddress and gotData == True and csvExists == True:
                     elif 'Fan Electric Energy' in column:
                         key.append(15)
                         if 'FAN CONSTANT VOLUME' in column:
+                            centTrigger = True
                             zoneName = checkCentralSys(" " + ":".join(column.split(":")[:-1]).split('FAN CONSTANT VOLUME ')[-1], 2)
                             makeHeader(fanElectric, int(path[columnCount]), zoneName, column.split('(')[-1].split(')')[0], "Fan Electric Energy", energyUnit, False)
                         elif 'FAN VARIABLE VOLUME' in column:
-                            zoneName = checkCentralSys(" " + ":".join(column.split(":")[:-1]).split('FAN VARIABLE VOLUME ')[-1], 2)
+                            fanNum = int(":".join(column.split(":")[:-1]).split('FAN VARIABLE VOLUME ')[-1])
+                            if centTrigger == True:
+                                fanNum = fanNum+len(zoneNameList)
+                            zoneName = checkCentralSys(" " + str(fanNum), 2)
                             makeHeader(fanElectric, int(path[columnCount]), zoneName, column.split('(')[-1].split(')')[0], "Fan Electric Energy", energyUnit, False)
                         elif 'FAN ON OFF' in column:
                             zoneName = checkZoneSys(" " + ":".join(column.split(":")[:-1]).split('FAN ON OFF ')[-1])
@@ -767,8 +771,8 @@ outputsDict = {
      
 0: ["totalThermalLoad", "The total thermal energy used by each zone in kWh.  This includes cooling and heating."],
 1: ["thermalLoadBalance", "The thermal energy used by each zone in kWh.  Heating values are positive while cooling values are negative. This is useful for computing balance points."],
-2: ["cooling", "The cooling energy needed in kWh. For Ideal Air loads, this is the sum of sensible and latent heat that must be removed from each zone.  For distributed OpenStudio systems like Packaged Terminal Heat Pumps (PTHP), this will be electric energy for each zone. For central OpenStudio systems, this ouput will be a single list of chiller electric energy for the whole building."],
-3: ["heating", "The heating energy needed in kWh. For Ideal Air loads, this is the sum of sensible and latent heat that must be removed from each zone.  For distributed OpenStudio systems like Packaged Terminal Heat Pumps (PTHP), this will be electric energy for each zone.  For central OpenStudio systems, this ouput will be a single list of boiler heat energy for the whole building."],
+2: ["cooling", "The cooling energy needed in kWh. For Ideal Air loads, this output is the sum of sensible and latent heat that must be removed from each zone.  For detailed HVAC systems (other than ideal air), this output will be electric energy needed to power each chiller/cooling coil."],
+3: ["heating", "The heating energy needed in kWh. For Ideal Air loads, this is the heat that must be added to each zone.  For detailed HVAC systems (other than ideal air), this will be fuel energy or electric energy needed for each boiler/heating element."],
 4: ["electricLight", "The electric lighting energy needed for each zone in kWh."],
 5: ["electricEquip", "The electric equipment energy needed for each zone in kWh."],
 6: ["fanElectric", "The fan electric energy in kWh for either a natural ventilation fan or a heating or cooling system fan.  This ouput will not appear when there is no fan in the model."],
